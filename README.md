@@ -1,5 +1,12 @@
 # claude-skillbelt
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+![Claude Code plugin](https://img.shields.io/badge/Claude_Code-plugin-d97757)
+![Codex failover](https://img.shields.io/badge/Codex-failover-10a37f)
+![cmux doc preview](https://img.shields.io/badge/cmux-doc_preview-3572A5)
+
+> Topics: `claude-code` · `claude-code-plugin` · `claude` · `codex` · `cmux` · `ai-tools` · `developer-tools`
+
 A small collection of **Claude Code skills** packaged as a plugin + marketplace.
 Currently bundled skills: `codex-failover`, `doc-preview-pane`.
 
