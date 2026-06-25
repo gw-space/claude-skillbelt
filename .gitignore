@@ -1,0 +1,13 @@
+# Secrets / local-only — never commit
+.vault_pass
+*.secret
+.env
+.env.*
+.DS_Store
+
+# Local codex/claude state (per-machine)
+.codex/
+.claude/projects/
+
+# Local memory/history buffer (per-machine)
+.remember/

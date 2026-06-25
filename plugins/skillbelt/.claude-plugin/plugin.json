@@ -1,0 +1,10 @@
+{
+  "name": "skillbelt",
+  "version": "0.2.0",
+  "description": "Claude Code skills — resilient Codex fallback, cmux doc preview, and more.",
+  "author": {
+    "name": "Gunwoo Yoon"
+  },
+  "homepage": "https://github.com/gw-space/claude-skillbelt",
+  "license": "MIT"
+}

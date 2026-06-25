@@ -1,0 +1,17 @@
+# gitleaks config — block secrets from slipping into skills/docs.
+# Usage: gitleaks detect --source . --config .gitleaks.toml
+title = "claude-skillbelt secret scan"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Allow documentation placeholders / non-secret examples"
+regexes = [
+  '''<task>''',
+  '''REPLACE_WITH_[A-Z_]+''',
+  '''\$\{CLAUDE_PLUGIN_ROOT\}''',
+]
+paths = [
+  '''README\.md''',
+]
