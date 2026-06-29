@@ -4,14 +4,14 @@
     "name": "Gunwoo Yoon"
   },
   "metadata": {
-    "description": "Claude Code skills toolkit — resilient Codex fallback, cmux doc preview, and more.",
-    "version": "0.2.0"
+    "description": "Claude Code skills toolkit — resilient Codex fallback, cmux doc + browser panes, and more.",
+    "version": "0.3.0"
   },
   "plugins": [
     {
       "name": "skillbelt",
-      "description": "Claude Code skills (codex-failover, doc-preview-pane, …).",
-      "version": "0.2.0",
+      "description": "Claude Code skills (codex-failover, doc-preview-pane, browser-pane).",
+      "version": "0.3.0",
       "author": {
         "name": "Gunwoo Yoon"
       },

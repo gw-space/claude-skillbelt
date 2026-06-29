@@ -4,11 +4,12 @@
 ![Claude Code plugin](https://img.shields.io/badge/Claude_Code-plugin-d97757)
 ![Codex failover](https://img.shields.io/badge/Codex-failover-10a37f)
 ![cmux doc preview](https://img.shields.io/badge/cmux-doc_preview-3572A5)
+![cmux browser pane](https://img.shields.io/badge/cmux-browser_pane-3572A5)
 
 > Topics: `claude-code` · `claude-code-plugin` · `claude` · `codex` · `cmux` · `ai-tools` · `developer-tools`
 
 A small collection of **Claude Code skills** packaged as a plugin + marketplace.
-Currently bundled skills: `codex-failover`, `doc-preview-pane`.
+Currently bundled skills: `codex-failover`, `doc-preview-pane`, `browser-pane`.
 
 ## Install
 
@@ -31,6 +32,7 @@ re-read the next time that skill is called.)
 |:-:|---|---|
 | 1 | [`codex-failover`](#1-codex-failover) | When a Claude task (including subagents/Workflows) is blocked by an error, fall back to Codex (gpt-5.5/xhigh) to finish the same work — its result flows into the workflow's aggregation so the orchestrating main agent can assemble the final result. |
 | 2 | [`doc-preview-pane`](#2-doc-preview-pane) | Right after you write/update a design or plan markdown doc, render it natively in the cmux right-side preview pane. |
+| 3 | [`browser-pane`](#3-browser-pane) | Open a URL / local dev server / dashboard in the cmux right-side browser pane (reuses one pane per workspace). |
 
 <br><br>
 
@@ -154,6 +156,45 @@ bash "${CLAUDE_PLUGIN_ROOT}/skills/doc-preview-pane/scripts/show-doc.sh" <abs-pa
   fails, it exits `0` quietly. The doc is already saved, so the main work is unaffected.
 - **Self-healing** — if the user closes the right pane, the failed `open` is detected, the
   state file is cleared, and the next call recreates it.
+
+<br><br>
+
+---
+
+# 3. browser-pane 🌐
+
+> Open a **URL in the cmux right-side browser pane** — local dev servers, dashboards, doc
+> sites. Sibling of `doc-preview-pane`: that one renders a markdown *file*, this one opens a
+> *URL* as a browser tab.
+
+| | |
+|---|---|
+| **When** | Right after starting a local server, or on a "show this URL / localhost on the right" request |
+| **Depends on** | `cmux` CLI (browser feature; auto-enabled via `cmux enable-browser`) |
+| **Platform** | Only meaningful inside a cmux session — a silent no-op elsewhere |
+
+### Triggers
+
+- User says "open / show this URL (or `localhost:PORT`) on the right."
+- Right after you launch a local dev / preview / dashboard server.
+
+### Invocation
+
+```bash
+bash "${CLAUDE_PLUGIN_ROOT}/skills/browser-pane/scripts/open-url.sh" <url> [<url> ...]
+```
+
+`http://`/`https://` optional — a bare `localhost:8000` or `example.com` gets `http://` prepended. Multiple URLs open as tabs in the same pane.
+
+### Behavior & guarantees
+
+- **Single pane reuse** — the per-workspace browser pane UUID is stored at
+  `~/.local/state/cmux-browser-pane/<workspace-id>.pane`. Reused if alive (a new tab),
+  recreated on the right if closed → the screen never keeps splitting.
+- **Focus preserved** — always opens in the dedicated right pane; never touches the working (agent) pane.
+- **Best-effort** — if cmux is absent, you're outside a workspace, or pane creation/open
+  fails, it exits `0` quietly; the main work is unaffected.
+- **Self-healing** — if the user closes the right pane, the next call recreates it.
 
 ## License
 
