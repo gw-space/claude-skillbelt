@@ -1,7 +1,7 @@
 {
   "name": "skillbelt",
-  "version": "0.2.0",
-  "description": "Claude Code skills — resilient Codex fallback, cmux doc preview, and more.",
+  "version": "0.3.0",
+  "description": "Claude Code skills — resilient Codex fallback, cmux doc + browser panes, and more.",
   "author": {
     "name": "Gunwoo Yoon"
   },
