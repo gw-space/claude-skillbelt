@@ -112,6 +112,7 @@ node "$TX" send "<방이름|번호|self>" "내용" --yes
 | `로그인 세션이 없거나 만료됐습니다` | 사용자에게 `node "$TX" login` 실행 요청. 내가 대신 못 한다 |
 | `Teams 로컬 대화 목록이 비어 있습니다` | headless 동기화 실패. `export --all --headed` 로 재시도 |
 | `GET 401` | 토큰 문제. 대개 재로그인으로 해결 |
+| 로그인 창이 회사 클라우드가 아님 (GCC High/DoD) | `TEAMS_EXPORT_URL=https://teams.microsoft.us/` 를 걸고 `login` 부터 다시. 이후 실행에도 같은 값이 필요하니 셸 프로필에 export |
 | 조회는 되는데 원하는 게 없음 | 수집 기간 밖일 수 있음. `stats` 기간을 확인해 알린다 |
 
 ## 배경

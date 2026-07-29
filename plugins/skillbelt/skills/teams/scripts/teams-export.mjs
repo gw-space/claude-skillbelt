@@ -32,7 +32,10 @@ const DEFAULT_OUT = join(DATA_DIR, 'out');
 const CONV_CACHE = join(DATA_DIR, 'conversations.json');
 const STATE_FILE = join(DATA_DIR, 'state.json');
 const PAGE_API = readFileSync(join(HERE, 'page-api.js'), 'utf8');
-const TEAMS_URL = 'https://teams.microsoft.com/';
+// Sovereign clouds (GCC High/DoD) sign in on a different host. page-api.js keys
+// its authz/Graph endpoints off the origin it was loaded from, so pointing this
+// at teams.microsoft.us switches the whole chain.
+const TEAMS_URL = process.env.TEAMS_EXPORT_URL || 'https://teams.microsoft.com/';
 
 /**
  * playwright-core is installed into DATA_DIR (see `setup`) rather than next to
@@ -201,6 +204,27 @@ async function waitForConversations(page, timeoutMs = 60000) {
 }
 
 // ── commands ───────────────────────────────────────────────────────────
+
+/** We launch with channel:'chrome', so only a real Google Chrome counts. */
+function findChrome() {
+  const candidates = {
+    darwin: [
+      '/Applications/Google Chrome.app',
+      join(homedir(), 'Applications', 'Google Chrome.app'),
+    ],
+    win32: [
+      join(process.env.PROGRAMFILES || 'C:\\Program Files', 'Google', 'Chrome', 'Application', 'chrome.exe'),
+      join(process.env['PROGRAMFILES(X86)'] || 'C:\\Program Files (x86)', 'Google', 'Chrome', 'Application', 'chrome.exe'),
+      join(process.env.LOCALAPPDATA || '', 'Google', 'Chrome', 'Application', 'chrome.exe'),
+    ],
+  }[process.platform] || [
+    '/usr/bin/google-chrome',
+    '/usr/bin/google-chrome-stable',
+    '/opt/google/chrome/google-chrome',
+  ];
+  return candidates.find((p) => p && existsSync(p)) || null;
+}
+
 function cmdSetup() {
   mkdirSync(DATA_DIR, { recursive: true, mode: 0o700 });
   const pkg = join(DATA_DIR, 'package.json');
@@ -219,11 +243,10 @@ function cmdSetup() {
       { cwd: DATA_DIR, stdio: 'inherit' });
   }
 
-  const chromeMac = '/Applications/Google Chrome.app';
-  const hasChrome = existsSync(chromeMac) || process.platform !== 'darwin';
-  console.log(hasChrome
-    ? 'Chrome: 확인됨 (시스템 Chrome 을 사용합니다)'
-    : '⚠️  Chrome 이 없습니다. Google Chrome 을 먼저 설치하세요.');
+  const chrome = findChrome();
+  console.log(chrome
+    ? `Chrome: 확인됨 — ${chrome}`
+    : '⚠️  Google Chrome 을 찾지 못했습니다. 먼저 설치하세요 (Chromium 은 사용할 수 없습니다).');
 
   console.log('\n✅ 준비 완료. 다음:');
   console.log(`   node ${join(HERE, 'teams-export.mjs')} login`);

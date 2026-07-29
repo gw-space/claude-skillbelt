@@ -157,6 +157,10 @@ node "$TX" setup    # creates ~/.teams-export, installs playwright-core, checks 
 node "$TX" login    # opens a Chrome window — sign in with your work account
 ```
 
+On a sovereign cloud (GCC High / DoD), export `TEAMS_EXPORT_URL=https://teams.microsoft.us/`
+first — sign-in and every later run must start on your own cloud's host. Put it in your
+shell profile so unattended runs pick it up too.
+
 `login` prints `✅ 로그인 완료` once the session is saved. From then on every run is
 headless and unattended. Sessions last days to weeks depending on tenant policy; when it
 expires, run `login` again.
