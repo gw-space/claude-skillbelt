@@ -15,7 +15,7 @@
  *
  * Options: --since 2026-01-01   --out <dir>   --headed   --raw   --include-system
  */
-import { readFileSync, writeFileSync, mkdirSync, existsSync, rmSync, readdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, rmSync, readdirSync, renameSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { homedir } from 'node:os';
@@ -168,8 +168,11 @@ const slug = (s) =>
 
 // ── label helper ───────────────────────────────────────────────────────
 function labelFor(c, names) {
-  if (c.shortTitle) return c.shortTitle;   // Teams' own precomputed sidebar title
+  // A named chat keeps its name in `topic`; shortTitle stays a participant
+  // summary ("Hoyeon, Jino Park, +6") even then, so the name has to win or the
+  // sidebar title is never what you can search or send to.
   if (c.topic) return c.topic;
+  if (c.shortTitle) return c.shortTitle;
   const other = mriUuid(c.id);
   if (other && names[other]) return names[other];
   if (c.lastMessageFrom) return `(무제) ~ ${c.lastMessageFrom}`;
@@ -294,8 +297,16 @@ async function cmdList() {
 // ── corpus on disk ─────────────────────────────────────────────────────
 // One file per conversation, named from a hash of the conversation id so the
 // name is stable across runs even when the label or sidebar order changes.
-const fileFor = (outDir, c) =>
-  join(outDir, `${slug(c.label)}__${createHash('sha1').update(c.id).digest('hex').slice(0, 8)}.json`);
+function fileFor(outDir, c) {
+  const tag = createHash('sha1').update(c.id).digest('hex').slice(0, 8);
+  const file = join(outDir, `${slug(c.label)}__${tag}.json`);
+  if (existsSync(file) || !existsSync(outDir)) return file;
+  // Renaming a chat changes its label, and with it the file name. Carry the
+  // history over instead of starting a second file for the same conversation.
+  const prior = readdirSync(outDir).find((f) => f.endsWith(`__${tag}.json`));
+  if (prior) renameSync(join(outDir, prior), file);
+  return file;
+}
 
 const readState = () => (existsSync(STATE_FILE) ? JSON.parse(readFileSync(STATE_FILE, 'utf8')) : {});
 const writeState = (s) => writeFileSync(STATE_FILE, JSON.stringify(s, null, 2));
