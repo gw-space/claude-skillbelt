@@ -2,14 +2,13 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 ![Claude Code plugin](https://img.shields.io/badge/Claude_Code-plugin-d97757)
-![Codex failover](https://img.shields.io/badge/Codex-failover-10a37f)
 ![cmux doc preview](https://img.shields.io/badge/cmux-doc_preview-3572A5)
 ![cmux browser pane](https://img.shields.io/badge/cmux-browser_pane-3572A5)
 
-> Topics: `claude-code` · `claude-code-plugin` · `claude` · `codex` · `cmux` · `ai-tools` · `developer-tools`
+> Topics: `claude-code` · `claude-code-plugin` · `claude` · `cmux` · `ai-tools` · `developer-tools`
 
 A small collection of **Claude Code skills** packaged as a plugin + marketplace.
-Currently bundled skills: `codex-failover`, `doc-preview-pane`, `browser-pane`.
+Currently bundled skills: `doc-preview-pane`, `browser-pane`.
 
 ## Install
 
@@ -30,99 +29,14 @@ re-read the next time that skill is called.)
 
 | # | Skill | One-liner |
 |:-:|---|---|
-| 1 | [`codex-failover`](#1-codex-failover) | When a Claude task (including subagents/Workflows) is blocked by an error, fall back to Codex (gpt-5.5/xhigh) to finish the same work — its result flows into the workflow's aggregation so the orchestrating main agent can assemble the final result. |
-| 2 | [`doc-preview-pane`](#2-doc-preview-pane) | Right after you write/update a design or plan markdown doc, render it natively in the cmux right-side preview pane. |
-| 3 | [`browser-pane`](#3-browser-pane) | Open a URL / local dev server / dashboard in the cmux right-side browser pane (reuses one pane per workspace). |
+| 1 | [`doc-preview-pane`](#1-doc-preview-pane) | Right after you write/update a design or plan markdown doc, render it natively in the cmux right-side preview pane. |
+| 2 | [`browser-pane`](#2-browser-pane) | Open a URL / local dev server / dashboard in the cmux right-side browser pane (reuses one pane per workspace). |
 
 <br><br>
 
 ---
 
-# 1. codex-failover 🔁
-
-> When a Claude agent/subagent/Workflow is **blocked by an error, fall back to Codex
-> immediately**, finish the same work, and let that result flow into the workflow's
-> aggregation so the **orchestrating main Claude can assemble a clean final result**.
-
-| | |
-|---|---|
-| **When** | A task stalls on rate limit / 5xx / classifier or safety block / refusal / tool or Workflow failure |
-| **Depends on** | codex CLI (logged in) · `openai-codex` plugin · model `gpt-5.5` |
-| **Platform** | Any environment (Codex edits files in a Bash sandbox) |
-
-### Usage (how to ask for it)
-
-Work as usual, but run a multi-agent / Workflow pass with **ultracode** and
-`codex-failover` kicks in automatically inside it. For example:
-
-```
-Review this project using ultracode and the codex-failover skill
-```
-
-```
-Review this PR with ultracode, and for any agent that gets blocked, fall back to Codex to finish it
-```
-
-With no extra setup, a blocked agent is swapped out for Codex in place via the
-`agentOrCodex()` wrapper and its result is folded into the same aggregation. (You don't
-have to author a workflow yourself — writing the intent like "ultracode … codex
-fallback …" lets Claude build the workflow with the wrapper.)
-
-### Triggers (no error-type distinction → straight to Codex)
-
-- rate limit (`Server is temporarily limiting requests` / 429 / 529),
-- HTTP 5xx / overloaded / timeout,
-- classifier / cybersecurity / safety block or refusal,
-- terminal model/API error,
-- tool / subagent / Workflow failure (`agent()` returns null, Bash/tool error, etc.).
-
-> Claude and Codex are different providers, so a Claude rate limit does not throttle the Codex fallback.
-
-### Behavior
-
-1. **Capture handoff context** — goal/acceptance criteria, what was done and where
-   (branch, files), the original task context, and (in a workflow) done vs. remaining units.
-2. **Dispatch `codex:codex-rescue`** — `--model gpt-5.5 --effort xhigh --write`.
-   Use `--background` for long, multi-step work; `--resume-last` to continue prior Codex work.
-3. **Split of roles** — Codex runs in a Bash sandbox and does the actual work (file
-   edits); cross-system steps (SSH/deploy/cloud builds) are left to the main agent.
-4. **Aggregate the result** — Codex returns output in the shape the failed agent would
-   have produced (matching any requested schema), so it folds into the **same
-   pipeline/parallel aggregation** and the workflow's main Claude assembles it like any
-   other agent's output. (Here "merge" means folding into the workflow output — NOT a
-   git merge. The skill never commits/PRs/pushes.)
-5. If Codex also fails, stop — no infinite loop — and surface the full context to the user.
-
-### In-workflow fallback — `agentOrCodex()`
-
-A plain `agent()` that fails leaves a `null` and the Workflow proceeds with that gap.
-To **swap a failed agent for Codex in place and stream the result into the same
-aggregation**, call the `agentOrCodex()` wrapper (in the skill body) instead of
-`agent()` → Codex output lands in the `pipeline()`/`parallel()` result array and is
-auto-merged at the synthesis stage.
-
-> ⚠️ **Workflow scripts are PLAIN JAVASCRIPT** — TS type annotations/interfaces/generics
-> fail to parse and the whole workflow is rejected. Paste the wrapper verbatim and "don't type it."
-
-### Prerequisites (no-op without these)
-
-1. **codex CLI installed + logged in** — check with `codex login status`. (ChatGPT account or API)
-2. **openai-codex plugin installed** — provides the `codex:codex-rescue` agent.
-3. **Model** — use `gpt-5.5` (ChatGPT-account Codex). (`gpt-5.5-codex` is not supported on ChatGPT accounts.)
-
-### Does a cybersecurity block auto-fall-back while coding?
-
-| Coding situation | On a cyber block |
-|---|---|
-| **Workflow/subagent is coding** (delegated) | ✅ **Automatic** — the `agentOrCodex` wrapper swaps in Codex in place |
-| **A delegated tool/subagent fails** (inline coding) | ✅ I observe the failure → immediately go to Codex (skill protocol, effectively automatic) |
-| **My own reply is blocked while generating code directly** | ⚠️ Not automatic that turn — the block ends my turn; I fall back to Codex on the next turn |
-
-<br><br>
-
----
-
-# 2. doc-preview-pane 📄
+# 1. doc-preview-pane 📄
 
 > Render a **markdown doc natively in the cmux right-side preview pane**. No separate
 > viewer (glow, etc.) needed — `cmux open` renders `.md` as a markdown preview tab.
@@ -161,7 +75,7 @@ bash "${CLAUDE_PLUGIN_ROOT}/skills/doc-preview-pane/scripts/show-doc.sh" <abs-pa
 
 ---
 
-# 3. browser-pane 🌐
+# 2. browser-pane 🌐
 
 > Open a **URL in the cmux right-side browser pane** — local dev servers, dashboards, doc
 > sites. Sibling of `doc-preview-pane`: that one renders a markdown *file*, this one opens a
