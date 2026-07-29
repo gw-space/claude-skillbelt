@@ -1,7 +1,7 @@
 {
   "name": "skillbelt",
-  "version": "0.4.0",
-  "description": "Claude Code skills — cmux doc + browser panes, and more.",
+  "version": "0.5.0",
+  "description": "Claude Code skills — Teams read/send, cmux doc + browser panes, and more.",
   "author": {
     "name": "Gunwoo Yoon"
   },
