@@ -4,11 +4,12 @@
 ![Claude Code plugin](https://img.shields.io/badge/Claude_Code-plugin-d97757)
 ![cmux doc preview](https://img.shields.io/badge/cmux-doc_preview-3572A5)
 ![cmux browser pane](https://img.shields.io/badge/cmux-browser_pane-3572A5)
+![Teams read + send](https://img.shields.io/badge/Teams-read_%2B_send-5059C9)
 
-> Topics: `claude-code` · `claude-code-plugin` · `claude` · `cmux` · `ai-tools` · `developer-tools`
+> Topics: `claude-code` · `claude-code-plugin` · `claude` · `cmux` · `microsoft-teams` · `ai-tools` · `developer-tools`
 
 A small collection of **Claude Code skills** packaged as a plugin + marketplace.
-Currently bundled skills: `doc-preview-pane`, `browser-pane`.
+Currently bundled skills: `doc-preview-pane`, `browser-pane`, `teams`.
 
 ## Install
 
@@ -31,6 +32,7 @@ re-read the next time that skill is called.)
 |:-:|---|---|
 | 1 | [`doc-preview-pane`](#1-doc-preview-pane) | Right after you write/update a design or plan markdown doc, render it natively in the cmux right-side preview pane. |
 | 2 | [`browser-pane`](#2-browser-pane) | Open a URL / local dev server / dashboard in the cmux right-side browser pane (reuses one pane per workspace). |
+| 3 | [`teams`](#3-teams) | Read your Microsoft Teams chats and send messages from Claude Code — no Graph API, no admin consent. Needs a one-time setup. |
 
 <br><br>
 
@@ -109,6 +111,123 @@ bash "${CLAUDE_PLUGIN_ROOT}/skills/browser-pane/scripts/open-url.sh" <url> [<url
 - **Best-effort** — if cmux is absent, you're outside a workspace, or pane creation/open
   fails, it exits `0` quietly; the main work is unaffected.
 - **Self-healing** — if the user closes the right pane, the next call recreates it.
+
+<br><br>
+
+---
+
+# 3. teams 💬
+
+> **Read your Microsoft Teams chats and send messages — from Claude Code.**
+> Ask "what did I miss in the last 3 days?" or "send Jane the summary" and it just works.
+
+| | |
+|---|---|
+| **When** | Catching up on missed chats, extracting decisions/action items, tracking a topic, sending a message or reply |
+| **Depends on** | Node.js 18+, Google Chrome, npm (setup installs `playwright-core`) |
+| **Platform** | macOS / Linux / Windows (Chrome-driven; paths below assume macOS/Linux) |
+| **Account** | A work/school Microsoft 365 account you can already sign into on Teams **web** |
+
+### Why this exists
+
+The obvious route — Microsoft Graph (`Chat.Read`) — is blocked in most corporate tenants:
+they disable **user consent**, so every app hits *"admin approval required"*, and
+registering your own Entra app does not help (consent policy applies regardless of who
+owns the app). Work/school accounts also have **no self-service Teams export**.
+
+So this skill takes the other road: it drives a real Chrome with a dedicated profile,
+reuses the **token from your already-signed-in Teams web session**, and calls the same
+chat-service endpoints the Teams web app itself uses. No app registration, no admin
+consent.
+
+> [!IMPORTANT]
+> This deliberately routes around your tenant's app-consent gate. If your organization
+> blocks third-party app access on purpose, using this may violate its policy. That is
+> your call to make — check before you roll it out to a team.
+
+### First-time setup
+
+Two commands. The second one **you must run yourself** — MFA sign-in is interactive, so
+Claude cannot do it for you.
+
+```bash
+TX="${CLAUDE_PLUGIN_ROOT}/skills/teams/scripts/teams-export.mjs"
+
+node "$TX" setup    # creates ~/.teams-export, installs playwright-core, checks Chrome
+node "$TX" login    # opens a Chrome window — sign in with your work account
+```
+
+`login` prints `✅ 로그인 완료` once the session is saved. From then on every run is
+headless and unattended. Sessions last days to weeks depending on tenant policy; when it
+expires, run `login` again.
+
+Then just talk to Claude:
+
+```
+"팀즈에서 지난주 A건 어떻게 정리됐는지 찾아줘"
+"내가 자리 비운 3일 동안 놓친 거 뭐 있어?"
+"Enn한테 회신 부탁한다고 보내줘"
+```
+
+Claude refreshes the corpus when it's stale, searches narrowly, and answers with quotes.
+
+### Commands
+
+Run as `node "$TX" <command>`. Claude drives these for you; they're here for reference.
+
+| Command | What it does |
+|---|---|
+| `setup` | Create the data dir, install `playwright-core`, verify Chrome |
+| `login` | One-time interactive sign-in (opens a window) |
+| `list` | List your conversations |
+| `export --all` | Collect everything. **Incremental** after the first run |
+| `export <n\|id>` | Collect one conversation |
+| `recent --days 3` | Recent messages grouped by room — offline, instant |
+| `find "kw"` | Search the corpus. `--room` `--from` `--since` `--until` `--context N` |
+| `stats` | Corpus size, date range, last-collection time |
+| `send <room> "msg" --yes` | Send a message. Without `--yes` it only previews |
+| `wipe` | Delete the saved login session |
+
+### How it works
+
+- **Conversation list** comes from Teams' own local IndexedDB (`Teams:conversation-manager`).
+  The chat service's `/v1/users/ME/conversations` rejects a plain IC3 bearer with `401`.
+- **Messages** page through `{chatServiceUrl}/v1/users/ME/conversations/{id}/messages`.
+- **Incremental collection** — `state.json` records the newest message per room. Rooms with
+  nothing new are skipped without a single network call; the rest fetch only the delta and
+  merge (deduped by message id). Only the first run is slow.
+- **Sending** POSTs to the same conversation resource, with the display name resolved from
+  your MSAL cache so the author isn't blank.
+- **No DOM scraping**, so Teams UI changes and virtualized scrolling don't break it.
+
+### Data & privacy
+
+- Everything is written to `~/.teams-export/` — code lives in the plugin, data does not, so
+  plugin updates never wipe your session or corpus.
+- Every outbound request goes to a Microsoft host (`authsvc`, `*.chatsvc`,
+  `graph.microsoft.com`). Nothing is uploaded anywhere else.
+- `~/.teams-export/profile` holds a **live authenticated Chrome profile** (mode `700`).
+  Treat it like a credential; `node "$TX" wipe` removes it.
+- `out/*.json` contains your chat history in plaintext. It sits on your disk under your
+  home directory — back it up, or don't, accordingly.
+
+### Caveats
+
+- **Sending is irreversible.** Recipients are notified even if you delete the message
+  afterwards. Room matching is a case-insensitive substring on the room label and picks the
+  most recent match, so an ambiguous name can hit the wrong room — Claude previews first
+  when the match is uncertain.
+- **Permissions** — Claude Code's auto-mode classifier may block the command
+  (`defaultMode: bypassPermissions` alone does not get past it). Approve the prompt, or add
+  to `permissions.allow` in `~/.claude/settings.json`:
+  `Bash(node <plugin-path>/skills/teams/scripts/teams-export.mjs:*)`
+- **Headless sync** — if `list` comes back empty, run with `--headed` once so Teams can
+  finish syncing its local store.
+
+### Credits
+
+MSAL cache decryption and the chat-service call shapes were derived from
+[gediz/teams-web-chat-exporter](https://github.com/gediz/teams-web-chat-exporter) (MIT).
 
 ## License
 
