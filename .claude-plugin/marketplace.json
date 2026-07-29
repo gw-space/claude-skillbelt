@@ -5,13 +5,13 @@
   },
   "metadata": {
     "description": "Claude Code skills toolkit — Teams read/send, cmux doc + browser panes, and more.",
-    "version": "0.5.0"
+    "version": "0.5.1"
   },
   "plugins": [
     {
       "name": "skillbelt",
       "description": "Claude Code skills (teams, doc-preview-pane, browser-pane).",
-      "version": "0.5.0",
+      "version": "0.5.1",
       "author": {
         "name": "Gunwoo Yoon"
       },
