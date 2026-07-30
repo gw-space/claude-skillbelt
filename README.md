@@ -161,16 +161,16 @@ On a sovereign cloud (GCC High / DoD), export `TEAMS_EXPORT_URL=https://teams.mi
 first — sign-in and every later run must start on your own cloud's host. Put it in your
 shell profile so unattended runs pick it up too.
 
-`login` prints `✅ 로그인 완료` once the session is saved. From then on every run is
+`login` prints a `✅` confirmation once the session is saved. From then on every run is
 headless and unattended. Sessions last days to weeks depending on tenant policy; when it
 expires, run `login` again.
 
 Then just talk to Claude:
 
 ```
-"팀즈에서 지난주 A건 어떻게 정리됐는지 찾아줘"
-"내가 자리 비운 3일 동안 놓친 거 뭐 있어?"
-"Enn한테 회신 부탁한다고 보내줘"
+"Find how the A issue was resolved in Teams last week"
+"What did I miss over the 3 days I was away?"
+"Send Enn a note asking for a reply"
 ```
 
 Claude refreshes the corpus when it's stale, searches narrowly, and answers with quotes.
